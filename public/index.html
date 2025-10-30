@@ -62,6 +62,25 @@
             border-radius: 4px;
             font-size: 14px;
         }
+        .interaction-prompt {
+            margin-top: 20px;
+            padding: 20px;
+            background: #fff3cd;
+            border: 2px solid #ffc107;
+            border-radius: 8px;
+            text-align: center;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .interaction-prompt:hover {
+            background: #ffe69c;
+            transform: scale(1.02);
+        }
+        .interaction-prompt.hidden {
+            display: none;
+        }
         .log {
             margin-top: 20px;
             padding: 15px;
@@ -88,9 +107,14 @@
 
         <button onclick="testSound()">Test Sound</button>
 
+        <div class="interaction-prompt" id="interactionPrompt" onclick="enableSound()">
+            👆 Click here to enable sound notifications
+        </div>
+
         <div class="info">
             <strong>Keep this tab open to receive notifications.</strong><br>
-            When your Docker container sends a notification, a sound will play here.
+            When your Docker container sends a notification, you'll hear a sound and see a browser notification.<br>
+            <small>Click anywhere on this page to enable sound playback.</small>
         </div>
 
         <div class="log" id="log">
@@ -106,6 +130,34 @@
         const audio = new Audio('/glass.wav');
         audio.preload = 'auto';
         
+        let soundEnabled = false;
+        
+        // Request notification permission on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            if ('Notification' in window && Notification.permission !== 'granted' && Notification.permission !== 'denied') {
+                Notification.requestPermission().then(permission => {
+                    if (permission === 'granted') {
+                        addLog('Browser notifications enabled');
+                    }
+                });
+            }
+        });
+        
+        function enableSound() {
+            // Play a silent sound to enable audio context
+            audio.volume = 0.01;
+            audio.play().then(() => {
+                audio.pause();
+                audio.volume = 1.0;
+                audio.currentTime = 0;
+                soundEnabled = true;
+                document.getElementById('interactionPrompt').classList.add('hidden');
+                addLog('Sound enabled! Ready to receive notifications.');
+            }).catch(err => {
+                addLog('Failed to enable sound: ' + err.message);
+            });
+        }
+        
         function addLog(message) {
             const entry = document.createElement('div');
             entry.className = 'log-entry';
@@ -118,14 +170,36 @@
             }
         }
 
+        function showNotification() {
+            if ('Notification' in window && Notification.permission === 'granted') {
+                new Notification('Claude Code Task Complete', {
+                    body: 'Your Claude Code agent has finished its task.',
+                    icon: '/favicon.ico',
+                    requireInteraction: false
+                });
+                addLog('Browser notification sent');
+            }
+        }
+
         function playSound() {
             addLog('Playing sound...');
+            
+            if (!soundEnabled) {
+                addLog('Sound not enabled yet - click the yellow prompt to enable');
+                showNotification();
+                return;
+            }
             
             // Play the Glass sound
             audio.currentTime = 0; // Reset to start
             audio.play().catch(err => {
                 addLog('Error playing sound: ' + err.message);
+                // If sound fails, ensure notification is shown
+                showNotification();
             });
+            
+            // Also show browser notification
+            showNotification();
         }
 
         function testSound() {
