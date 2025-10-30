@@ -139,7 +139,6 @@ This is a minimal notification microservice with basic bearer token authenticati
    - Deploy to cloud platforms (Railway, Render, Fly.io, etc.)
    - Use a private/obscure URL that's not publicly discoverable
    - The bearer token adds a layer of protection
-   - Still not recommended for sensitive/production workloads
 
 **Best Practices:**
 
